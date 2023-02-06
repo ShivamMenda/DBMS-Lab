@@ -113,3 +113,19 @@ delimiter ;
 
 insert into owns VALUES
 ("D222", "KA-21-AC-5473"); 
+
+-- A trigger that prevents a driver from participating in more than 2 accidents in a given year.
+
+DELIMITER //
+create trigger PreventParticipation
+before insert on participated
+for each row
+BEGIN
+	IF 2<=(select count(*) from participated where driver_id=new.driver_id) THEN
+		signal sqlstate '45000' set message_text='Driver has already participated in 2 accidents';
+	END IF;
+END;//
+DELIMITER ;
+
+INSERT INTO participated VALUES
+("D222", "KA-20-AB-4223", 66666, 20000);

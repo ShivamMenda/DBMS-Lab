@@ -80,4 +80,76 @@ select * from Enroll;
 select * from BookAdoption;
 select * from TextBook;
 
+-- Demonstrate how you add a new text book to the database and make this book be adopted by some department.
+insert into TextBook values
+(123456, "Test", "Pearson", "Shivam");
+
+insert into BookAdoption values
+(001, 5, 123456);
+
+-- Produce a list of text books (include Course #, Book-ISBN, Book-title) in the alphabetical order for courses offered by the ‘CS’ department that use more than two books.
+SELECT c.course,t.bookIsbn,t.book_title
+     FROM Course c,BookAdoption ba,TextBook t
+     WHERE c.course=ba.course
+     AND ba.bookIsbn=t.bookIsbn
+     AND c.dept='CS'
+     AND 2<(
+     SELECT COUNT(bookIsbn)
+     FROM BookAdoption b
+     WHERE c.course=b.course)
+     ORDER BY t.book_title;
+
+-- List any department that has all its adopted books published by a specific publisher.
+SELECT DISTINCT c.dept
+     FROM Course c
+     WHERE c.dept IN
+     ( SELECT c.dept
+     FROM Course c,BookAdoption b,TextBook t
+     WHERE c.course=b.course
+     AND t.bookIsbn=b.bookIsbn
+     AND t.publisher='OXFORD')
+     AND c.dept NOT IN
+     ( SELECT c.dept
+     FROM Course c, BookAdoption b, TextBook t
+     WHERE c.course=b.course
+     AND t.bookIsbn=b.bookIsbn
+     AND t.publisher!='OXFORD');
+     
+-- List the students who have scored maximum marks in ‘DBMS’ course.
+
+select s.name from Student s,Enroll e where e.regno=s.regno  and e.marks=(Select max(e.marks) from Enroll e,Course c where e.course=c.course and c.cname="DBMS");
+
+create view CourseOpt as Select e.regno,c.cname,e.marks from Enroll e,Course c where e.course=c.course and e.regno="01HF235";
+drop view CourseOpt;
+select * from CourseOpt;
+
+-- Create a trigger such that it Deletes all records from enroll table when course is deleted 
+DELIMITER //
+create trigger DeleteRecords
+after delete on Course
+for each row
+BEGIN
+	DELETE FROM Enroll where Enroll.course=OLD.course;
+END;//
+
+DELIMITER ;
+
+delete from Course where course=2; -- Will also delete records from Enroll table
+
+-- Create a trigger that prevents a student from enrolling in a course if the marks pre_requisit is less than the given threshold 
+DELIMITER //
+create trigger PreventEnrollment
+before insert on Enroll
+for each row
+BEGIN
+	IF (new.marks<10) THEN
+		signal sqlstate '45000' set message_text='Marks below threshold';
+	END IF;
+END;//
+
+DELIMITER ;
+
+INSERT INTO Enroll VALUES
+("01HF235", 002, 5, 5); -- Gives error since marks is less than 10
+
 
