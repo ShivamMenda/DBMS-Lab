@@ -86,33 +86,17 @@ insert into participated values
 ("D222", "KA-21-BD-4728", 45562, 50000);
 
 
-delete from car where reg_no = (select reg_no from owns natural join person where person.driver_name ='Smith') and model = 'Mazda';
+delete from car where reg_no=(select reg_no from owns where driver_id=(select driver_id from person where driver_name="Smith")) and model="Mazda";
 select * from car;
 
 update participated set damage_amount=10000 where report_no=65738 and reg_no="KA-09-MA-1234";
 select * from participated;
 
-create view carview2 as
- select distinct car.model,car.c_year from car natural join participated;
+create or replace view carview2 as
+ select distinct car.model,car.c_year from car,participated where participated.reg_no=car.reg_no;
 
 
 select * from carview2;
-
-delimiter //
-create trigger PreventOwnership 
-before insert on owns 
-for each row
-begin
-	if new.driver_id in (select driver_id from participated group by driver_id
-having sum(damage_amount) >= 50000) then
-	signal sqlstate '45000' set message_text = 'Damage Greater than Rs.50,000';
-	end if;
-end;//
-
-delimiter ;
-
-insert into owns VALUES
-("D222", "KA-21-AC-5473"); 
 
 -- A trigger that prevents a driver from participating in more than 2 accidents in a given year.
 
@@ -126,6 +110,7 @@ BEGIN
 	END IF;
 END;//
 DELIMITER ;
+drop trigger PreventParticipation;
 
 INSERT INTO participated VALUES
 ("D222", "KA-20-AB-4223", 66666, 20000);

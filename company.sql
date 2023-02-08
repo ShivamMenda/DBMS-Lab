@@ -106,19 +106,18 @@ select d.d_no, count(e.ssn) as no_of_emp from Department d ,Employee e where e.d
 create view EmpView as select e.ename,d.dname,dl.d_loc from Employee e,Department d,DLocation dl where e.d_no=d.d_no and d.d_no=dl.d_no;
 select * from EmpView;
 
--- A trigger that automatically updates manager’s start date when he is assigned.
+-- Create a trigger that prevents a project from being deleted if it is currently being worked by any employee.
 
 DELIMITER //
-create trigger UpdateManagerStartDate
-before insert on Department
+create trigger PreventDelete
+before delete on Project
 for each row
 BEGIN
-	SET NEW.mgr_start_date=curdate();
-END;//
+	IF EXISTS (select * from WorksOn where p_no=old.p_no) THEN
+		signal sqlstate '45000' set message_text='This project has an employee assigned';
+	END IF;
+END; //
 
 DELIMITER ;
 
-insert into Department (d_no, dname, mgr_ssn) values
-(006,"R&D","01NB354");
-
-select * from Department;
+delete from Project where p_no=453723; -- Will give error 

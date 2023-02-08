@@ -38,6 +38,9 @@ insert into rservers values
 (3,103,"2023-01-01"),
 (2,102,"2019-01-01");
 
+insert into rservers values(1,102,"2022-02-03");
+insert into rservers values(1,103,"2022-03-02");
+
 select * from sailor;
 select * from boat;
 select * from rservers;
@@ -61,13 +64,14 @@ where bid=103);
 select s.sname
 from sailor s
 where s.sid not in 
-(select s1.sid from sailor s1, rservers r1 where r1.sid=s1.sid and s1.sname like "%storm%")
+(select s1.sid from sailor s1, rservers r1 where r1.sid=s1.sid)
 and s.sname like "%storm%"
 order by s.sname ASC;
 
 
 #Find the names of sailors who have reserved all boats.
 select sname from sailor where not exists (select * from boat b where not exists (select * from rservers r where r.sid=sailor.sid and b.bid=r.bid));
+select s.sname from sailor s,rservers r where s.sid=r.sid group by s.sname having count(r.sid)=3;
 
 #Find the name and age of the oldest sailor.
 select sname,age from sailor where age =(select max(age) from sailor);
@@ -75,6 +79,16 @@ select sname,age from sailor where age =(select max(age) from sailor);
 #For each boat which was reserved by at least 5 sailors with age >= 40, find the boat id and
 #the average age of such sailors.
 select b.bid,avg(s.age) from sailor s,boat b,rservers r where r.sid=s.sid and r.bid=b.bid and s.age>=40 group by bid having count(distinct (r.sid))>=1; 
+
+
+-- Create a view that shows the names and colours of all the boats that have been reserved by a sailor with a specific rating.
+
+create or replace view ReservedBoatsWithRatedSailor as
+select distinct b.bname, b.color
+from Sailor s, Boat b, rservers r
+where s.sid=r.sid and b.bid=r.bid and s.rating=8;
+
+select * from ReservedBoatsWithRatedSailor;
 
 #trigger
 DELIMITER //
@@ -90,7 +104,7 @@ END;//
 DELIMITER ;
 
 drop trigger t1;
-delete from boat where bid=103;
+delete from boat where bid=101;
 
 
 

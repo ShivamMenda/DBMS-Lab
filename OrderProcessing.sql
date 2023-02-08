@@ -83,29 +83,42 @@ INSERT INTO Shipments VALUES
 (004, 0003, "2019-05-16"),
 (005, 0005, "2020-12-23");
 
+-- List the Order# and Ship_date for all orders shipped from Warehouse# "0002".
+select order_id,ship_date from Shipments where warehouse_id=0002;
+
 - #List the Warehouse information from which the Customer named "Kumar" was supplied his orders. Produce a listing of Order#, Warehouse#
 select order_id,warehouse_id from Shipments where order_id=(select order_id from Orders where cust_id=(select cust_id from Customers where cname="Kumar"));
 
-select Customers.cust_id,count(distinct Orders.order_id),Orders.order_amt from Customers ,Orders where Orders.cust_id=Customers.cust_id group by order_id;
+-- Produce a listing: Cname, #ofOrders, Avg_Order_Amt, where the middle column is the total number of orders by the customer and the last column is the average order amount for that customer. (Use aggregate functions)
+select Customers.cname,count(distinct Orders.order_id),avg(Orders.order_amt) from Customers ,Orders where Orders.cust_id=Customers.cust_id group by Customers.cust_id;
 
-create or replace view os as select order_id,ship_date from Shipments where warehouse_id=2;
+delete from Orders where cust_id=(Select cust_id from Customers where cname="Kumar");
+Select * from orders;
 
+-- Find the item with the maximum unit price.
 select max(unitprice) from Items;
 
+-- Create a view to display orderID and shipment date of all orders shipped from a warehouse 5.
+create or replace view os as select order_id,ship_date from Shipments where warehouse_id=5;
 select * from os;
 
 DELIMITER //
-CREATE TRIGGER PreventWarehouseDelete
-	BEFORE DELETE ON Warehouses
-    FOR EACH ROW
-    BEGIN 
-		IF OLD.warehouse_id IN (SELECT warehouse_id FROM Warehouses NATURAL JOIN Shipments) THEN
-			SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'An item has to be shipped from this warehouse!';
-		END IF;
-	END//;
+create trigger UpdateOrderAmt
+after insert on OrderItems
+for each row
+BEGIN
+	update Orders set order_amt=(new.qty*(select distinct unitprice from Items NATURAL JOIN OrderItems where item_id=new.item_id)) where Orders.order_id=new.order_id;
+END; // 
 DELIMITER ;
 
-drop trigger PreventWarehouseDelete;
+drop trigger UpdateOrderAmt;
 
-DELETE FROM Warehouses WHERE warehouse_id = 2;
+INSERT INTO Orders VALUES
+(007, "2020-12-23", 0004, 1200);
+
+INSERT INTO OrderItems VALUES 
+(007, 0001, 5); -- This will automatically update the Orders Table also
+
+select * from Orders;
+select * from OrderItems;
 
